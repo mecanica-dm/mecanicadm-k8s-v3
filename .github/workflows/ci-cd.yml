@@ -40,9 +40,19 @@ jobs:
         run: |
           aws s3api head-bucket --bucket ${{ secrets.TF_STATE_BUCKET }} 2>/dev/null || \
           aws s3api create-bucket --bucket ${{ secrets.TF_STATE_BUCKET }} \
-            --region ${{ secrets.AWS_REGION }}
+            --region ${{ secrets.AWS_REGION }} \
+            --create-bucket-configuration LocationConstraint=${{ secrets.AWS_REGION }}
           aws s3api put-bucket-versioning --bucket ${{ secrets.TF_STATE_BUCKET }} \
             --versioning-configuration Status=Enabled
+          aws s3api put-bucket-encryption --bucket ${{ secrets.TF_STATE_BUCKET }} \
+            --server-side-encryption-configuration '{
+              "Rules": [{
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "aws:kms"
+                },
+                "BucketKeyEnabled": true
+              }]
+            }'
 
       - name: Terraform Init
         run: |
