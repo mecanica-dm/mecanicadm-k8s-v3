@@ -1,0 +1,21 @@
+{{- if .Values.kongLambda.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ include "mecanicadm.fullname" . }}-aws-lambda
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mecanicadm.labels" . | nindent 4 }}
+plugin: aws-lambda
+config:
+  aws_key:
+    secret: {{ include "mecanicadm.fullname" . }}-kong-aws-credentials
+    key: aws-access-key
+  aws_secret:
+    secret: {{ include "mecanicadm.fullname" . }}-kong-aws-credentials
+    key: aws-secret-access-key
+  aws_region: {{ .Values.kongLambda.awsRegion | quote }}
+  function_name: {{ .Values.kongLambda.functionName | quote }}
+  invocation_type: {{ .Values.kongLambda.invocationType | quote }}
+  timeout: {{ .Values.kongLambda.timeout | int }}
+{{- end }}

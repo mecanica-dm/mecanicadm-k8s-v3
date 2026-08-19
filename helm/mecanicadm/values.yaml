@@ -1,0 +1,98 @@
+replicaCount: 1
+
+image:
+  repository: diegopriess/mecanica-dm
+  pullPolicy: Always
+  tag: ""
+
+imagePullSecrets: [ ]
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: { }
+  name: ""
+
+podAnnotations: { }
+
+podSecurityContext: { }
+securityContext:
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: kong
+  annotations: { }
+  hosts:
+    - host: ""
+      paths:
+        - path: /api
+          pathType: Prefix
+  tls: [ ]
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 50
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: { }
+tolerations: [ ]
+affinity: { }
+
+environment: "prod"
+springProfilesActive: "prod"
+
+mail:
+  host: smtp.gmail.com
+  port: "587"
+  smtpAuth: "true"
+  smtpStarttls: "true"
+
+budgetBaseUrl: "http://localhost:8080"
+
+secrets:
+  create: true
+  existingSecret: ""
+  data:
+    mailUsername: ""
+    mailPassword: ""
+    newRelicLicenseKey: ""
+
+kongLambda:
+  enabled: false
+  awsAccessKey: ""
+  awsSecretAccessKey: ""
+  awsRegion: "us-east-1"
+  functionName: "mecanicadm-lambda-v3-prod-validate-cpf"
+  invocationType: "RequestResponse"
+  timeout: 15000
+
+externalSecrets:
+  enabled: false
+  awsRegion: "us-east-1"
+  ssmPrefix: "/mecanicadm/prod"
+  refreshInterval: "1m"
+
+newRelic:
+  enabled: false
+  agentVersion: "8.15.0"
+  appName: "mecanica-dm-api"
+  logLevel: "info"

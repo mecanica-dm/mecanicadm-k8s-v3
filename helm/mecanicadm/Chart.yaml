@@ -1,0 +1,19 @@
+apiVersion: v2
+name: mecanicadm
+description: >-
+  Chart local da API Mecânica DM (Spring Boot 3), mantido em mecanicadm-k8s-v3.
+  Empacota Deployment, Service, Ingress (via Kong), ConfigMap, Secret,
+  ServiceAccount e HPA. DB/JWT secrets são sincronizados automaticamente
+  via External Secrets Operator (SSM). Mail e New Relic são injetados pela pipeline.
+type: application
+version: 1.0.0
+appVersion: "0.0.1-SNAPSHOT"
+keywords:
+  - mecanicadm
+  - oficina
+  - spring-boot
+  - api
+  - k8s
+maintainers:
+  - name: Mecânica DM
+    email: diegopriess.dev@gmail.com

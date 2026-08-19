@@ -1,0 +1,26 @@
+{{- if .Values.kongLambda.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "mecanicadm.fullname" . }}-lambda
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mecanicadm.labels" . | nindent 4 }}
+  annotations:
+    konghq.com/plugins: {{ include "mecanicadm.fullname" . }}-aws-lambda
+spec:
+  ingressClassName: kong
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - path: /lambda
+            pathType: Prefix
+            backend:
+              service:
+                name: kong
+                port:
+                  number: 80
+    {{- end }}
+{{- end }}

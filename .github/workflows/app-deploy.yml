@@ -1,0 +1,84 @@
+name: Deploy Aplicação - Helm (Mecânica DM API)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "helm/**"
+  repository_dispatch:
+    types: [ app-image-published ]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag da imagem a implantar (padrão: prod-latest)"
+        required: false
+        default: ""
+
+env:
+  ENVIRONMENT: prod
+  NAMESPACE: mecanicadm
+  IMAGE_REPO: ${{ secrets.DOCKER_IMAGE || 'diegopriess/mecanica-dm' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configura credenciais AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Atualiza o kubeconfig do EKS
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ secrets.EKS_CLUSTER_NAME }} \
+            --region ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Garante o namespace da aplicação
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml \
+            | kubectl apply -f -
+
+      - name: Cria o Secret da aplicação
+        run: |
+          kubectl create secret generic mecanicadm-secrets \
+            --namespace ${{ env.NAMESPACE }} \
+            --from-literal=MAIL_USERNAME="${{ secrets.MAIL_USERNAME }}" \
+            --from-literal=MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}" \
+            --from-literal=NEW_RELIC_LICENSE_KEY="${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Define a tag da imagem a implantar
+        id: image
+        run: |
+          TAG="${{ github.event.client_payload.image_tag || inputs.image_tag || 'prod-latest' }}"
+          echo "TAG=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Executa o helm upgrade/install do chart local
+        run: |
+          helm upgrade --install mecanicadm ./helm/mecanicadm \
+            --namespace ${{ env.NAMESPACE }} \
+            --values helm/mecanicadm/values-prod.yaml \
+            --set image.repository=${{ env.IMAGE_REPO }} \
+            --set image.tag=${{ steps.image.outputs.TAG }} \
+            --set secrets.create=true \
+            --set secrets.data.mailUsername="${{ secrets.MAIL_USERNAME }}" \
+            --set secrets.data.mailPassword="${{ secrets.MAIL_PASSWORD }}" \
+            --set secrets.data.newRelicLicenseKey="${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --set externalSecrets.enabled=true \
+            --atomic \
+            --timeout 5m
+
+      - name: Verifica o status do rollout
+        run: |
+          kubectl rollout status deployment/mecanicadm -n ${{ env.NAMESPACE }} --timeout=5m
