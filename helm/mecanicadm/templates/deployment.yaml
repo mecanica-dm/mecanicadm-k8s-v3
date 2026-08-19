@@ -85,10 +85,13 @@ spec:
             - name: NEW_RELIC_LOG_LEVEL
               value: {{ .Values.newRelic.logLevel | quote }}
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.newRelic.enabled }}
             - name: newrelic-agent
               mountPath: /newrelic
               readOnly: true
-          {{- end }}
+            {{- end }}
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
@@ -99,12 +102,14 @@ spec:
               port: http
             failureThreshold: 30
             periodSeconds: 10
+
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
+
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
@@ -130,3 +135,5 @@ spec:
         - name: newrelic-agent
           emptyDir: {}
       {{- end }}
+      - name: tmp
+        emptyDir: {}

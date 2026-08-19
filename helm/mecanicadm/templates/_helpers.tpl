@@ -49,7 +49,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- end -}}
 
-# Nome do ConfigMap consumido pelo Deployment.
 {{- define "mecanicadm.configMapName" -}}
 {{- printf "%s-config" (include "mecanicadm.fullname" .) -}}
 {{- end -}}

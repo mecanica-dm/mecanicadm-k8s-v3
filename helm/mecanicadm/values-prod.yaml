@@ -21,8 +21,7 @@ ingress:
       paths:
         - path: /api
           pathType: Prefix
-  tls:
-    [ ]
+  tls: []
 
 resources:
   requests:
@@ -48,7 +47,7 @@ mail:
   smtpAuth: "true"
   smtpStarttls: "true"
 
-budgetBaseUrl: "https://api.mecanicadm.example.com"
+budgetBaseUrl: "https://api.mecanicadm.example.com/api"
 
 secrets:
   create: true
