@@ -1,0 +1,1 @@
+# Mecânica DM - Infraestrutura Kubernetes (Terraform + Helm)
