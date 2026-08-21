@@ -69,7 +69,7 @@ mail:
 budgetBaseUrl: "http://localhost:8080/api"
 
 secrets:
-  create: true
+  create: false
   existingSecret: ""
   data:
     mailUsername: ""

@@ -3,7 +3,12 @@ name: CI/CD - Terraform EKS + Helm
 on:
   push:
     branches: [ main ]
+  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   AWS_DEFAULT_REGION: us-east-1
@@ -71,4 +76,5 @@ jobs:
         run: terraform plan -out=tfplan-prod
 
       - name: Terraform Apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve tfplan-prod

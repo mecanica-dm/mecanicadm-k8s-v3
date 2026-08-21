@@ -53,7 +53,7 @@ variable "node_min_size" {
 variable "node_max_size" {
   description = "Máximo de worker nodes (escala automática)."
   type        = number
-  default     = 4
+  default     = 2
 }
 
 variable "kong_chart_version" {

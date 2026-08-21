@@ -13,7 +13,7 @@ module "vpc" {
 
   # NAT Gateway garante que o cluster acesse a internet (ex.: pull de imagens).
   enable_nat_gateway = true
-  single_nat_gateway = false
+  single_nat_gateway = true
 
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -46,6 +46,10 @@ module "eks" {
       desired_size = var.node_desired_size
 
       instance_types = var.node_instance_types
+
+      # Instâncias Spot: ~70% mais baratas que on-demand. Em caso de
+      # interrupção, o Auto Scaling Group repõe o node automaticamente.
+      capacity_type = "SPOT"
 
       block_device_mappings = {
         xvda = {
@@ -115,6 +119,13 @@ resource "helm_release" "kube_prometheus_stack" {
   set {
     name  = "prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues"
     value = "false"
+  }
+
+  # Retenção curta de métricas: reduz consumo de RAM/disco no node
+  # sem perder o histórico recente usado nos dashboards.
+  set {
+    name  = "prometheus.prometheusSpec.retention"
+    value = "2d"
   }
 
   depends_on = [module.eks]

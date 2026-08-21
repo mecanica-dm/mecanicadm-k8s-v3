@@ -14,6 +14,10 @@ on:
         required: false
         default: ""
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 env:
   ENVIRONMENT: prod
   NAMESPACE: mecanicadm
@@ -71,10 +75,7 @@ jobs:
             --values helm/mecanicadm/values-prod.yaml \
             --set image.repository=${{ env.IMAGE_REPO }} \
             --set image.tag=${{ steps.image.outputs.TAG }} \
-            --set secrets.create=true \
-            --set secrets.data.mailUsername="${{ secrets.MAIL_USERNAME }}" \
-            --set secrets.data.mailPassword="${{ secrets.MAIL_PASSWORD }}" \
-            --set secrets.data.newRelicLicenseKey="${{ secrets.NEW_RELIC_LICENSE_KEY }}" \
+            --set secrets.create=false \
             --set externalSecrets.enabled=true \
             --atomic \
             --timeout 5m
