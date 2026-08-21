@@ -65,6 +65,9 @@ kongLambda:
   invocationType: "RequestResponse"
   timeout: 15000
 
+seed:
+  enabled: true
+
 externalSecrets:
   enabled: true
   awsRegion: "us-east-1"

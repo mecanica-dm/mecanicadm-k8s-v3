@@ -84,6 +84,8 @@ spec:
               value: {{ .Values.newRelic.appName | quote }}
             - name: NEW_RELIC_LOG_LEVEL
               value: {{ .Values.newRelic.logLevel | quote }}
+          {{- end }}
+
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -98,21 +100,21 @@ spec:
 
           startupProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /api/actuator/health/liveness
               port: http
             failureThreshold: 30
             periodSeconds: 10
 
           livenessProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /api/actuator/health/liveness
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
 
           readinessProbe:
             httpGet:
-              path: /actuator/health/readiness
+              path: /api/actuator/health/readiness
               port: http
             initialDelaySeconds: 10
             periodSeconds: 5
@@ -130,10 +132,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
 
-      {{- if .Values.newRelic.enabled }}
       volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.newRelic.enabled }}
         - name: newrelic-agent
           emptyDir: {}
-      {{- end }}
-      - name: tmp
-        emptyDir: {}
+        {{- end }}
