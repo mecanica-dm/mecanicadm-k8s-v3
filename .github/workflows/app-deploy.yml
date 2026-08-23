@@ -21,7 +21,7 @@ concurrency:
 env:
   ENVIRONMENT: prod
   NAMESPACE: mecanicadm
-  IMAGE_REPO: ${{ secrets.DOCKER_IMAGE || 'diegopriess/mecanica-dm' }}
+  IMAGE_REPO: ${{ vars.DOCKER_IMAGE_REPO || 'diegopriess/mecanica-dm' }}
 
 jobs:
   deploy:
@@ -29,24 +29,25 @@ jobs:
     environment: prod
 
     permissions:
-      id-token: write
       contents: read
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configura credenciais AWS (OIDC)
+      - name: Configura credenciais AWS (Learner Lab)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Atualiza o kubeconfig do EKS
         run: |
           aws eks update-kubeconfig \
-            --name ${{ secrets.EKS_CLUSTER_NAME }} \
-            --region ${{ secrets.AWS_REGION || 'us-east-1' }}
+            --name ${{ vars.EKS_CLUSTER_NAME }} \
+            --region ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Garante o namespace da aplicação
         run: |
