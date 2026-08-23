@@ -1,0 +1,50 @@
+# =============================================================================
+# INGRESS — roteamento externo via Kong
+#
+# O Ingress define REGRAS DE ROTEAMENTO para tráfego externo.
+# Com ingressClassName: kong, o Kong (API Gateway) processa as regras.
+#
+# Fluxo: Cliente → Kong (LoadBalancer) → Ingress (regras) → Service → Pod
+#
+# Este Ingress roteia o prefixo /api para a API Spring Boot.
+# O prefixo /lambda é roteado pelo kong-lambda-ingress.yaml.
+# =============================================================================
+
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "mecanicadm.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mecanicadm.labels" . | nindent 4 }}
+  # Anotações extras (ex.: cert-manager para TLS automático)
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  # Regras de roteamento
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}    # Domínio (ex.: "api.mecanicadm.example.com")
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}         # Prefixo (ex.: "/api")
+            pathType: {{ .pathType }} # "Prefix" = match por prefixo
+            backend:
+              service:
+                name: {{ include "mecanicadm.fullname" $ }}  # Service da API
+                port:
+                  number: {{ $.Values.service.port }}        # Porta 80
+          {{- end }}
+    {{- end }}
+{{- end }}

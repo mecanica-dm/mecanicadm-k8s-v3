@@ -1,0 +1,93 @@
+{{- if .Values.seed.enabled }}
+{{- $fullname := include "mecanicadm.fullname" . }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-seed-sql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mecanicadm.labels" . | nindent 4 }}
+data:
+  init.sql: |-
+{{ .Files.Get "seed/init.sql" | indent 4 }}
+---
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullname }}-seed
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mecanicadm.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "0"
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "mecanicadm.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: postgres:15-alpine
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-db-secrets
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-db-secrets
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-db-secrets
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-db-secrets
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-db-secrets
+                  key: DB_PASSWORD
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              API_URL="http://{{ $fullname }}:{{ .Values.service.port }}/api/actuator/health/readiness"
+              i=0
+              until wget -qO- "$API_URL" | grep -q '"status":"UP"'; do
+                i=$((i+1))
+                if [ "$i" -ge 60 ]; then
+                  echo "Timeout: API não ficou pronta em 5 minutos."
+                  exit 1
+                fi
+                echo "Aguardando API ficar pronta (Flyway/migrations)... ($i/60)"
+                sleep 5
+              done
+              echo "API pronta! Aplicando init.sql..."
+              PGPASSWORD="$DB_PASSWORD" psql \
+                -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+                -f /seed/init.sql
+              echo "Seed aplicado com sucesso."
+          volumeMounts:
+            - name: seed-sql
+              mountPath: /seed
+      volumes:
+        - name: seed-sql
+          configMap:
+            name: {{ $fullname }}-seed-sql
+{{- end }}

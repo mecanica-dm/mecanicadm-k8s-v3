@@ -1,0 +1,39 @@
+# =============================================================================
+# KONG PLUGIN — configuração do plugin aws-lambda
+# =============================================================================
+# O KongPlugin configura o plugin "aws-lambda" do Kong.
+# Este plugin permite ao Kong invocar funções Lambda da AWS diretamente.
+#
+# Parâmetros principais:
+# - function_name: qual Lambda invocar
+# - invocation_type: RequestResponse (síncrono) ou Event (assíncrono)
+# - timeout: tempo máximo de espera (15000ms = limite do plugin)
+# =============================================================================
+
+{{- if .Values.kongLambda.enabled }}
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: {{ include "mecanicadm.fullname" . }}-aws-lambda
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mecanicadm.labels" . | nindent 4 }}
+plugin: aws-lambda
+config:
+  # Credenciais AWS (lidas do Secret kong-aws-credentials)
+  aws_key:
+    secret: {{ include "mecanicadm.fullname" . }}-kong-aws-credentials
+    key: aws-access-key
+  aws_secret:
+    secret: {{ include "mecanicadm.fullname" . }}-kong-aws-credentials
+    key: aws-secret-access-key
+  # Região AWS onde a Lambda está部署da
+  aws_region: {{ .Values.kongLambda.awsRegion | quote }}
+  # Nome da função Lambda (ex.: "mecanicadm-lambda-v3-prod-validate-cpf")
+  function_name: {{ .Values.kongLambda.functionName | quote }}
+  # RequestResponse = síncrono (espera a resposta da Lambda)
+  # Event = assíncrono (dispara e esquece)
+  invocation_type: {{ .Values.kongLambda.invocationType | quote }}
+  # Timeout em milissegundos (15000 = limite do plugin)
+  timeout: {{ .Values.kongLambda.timeout | int }}
+{{- end }}

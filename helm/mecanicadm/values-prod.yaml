@@ -1,0 +1,81 @@
+replicaCount: 2
+
+image:
+  pullPolicy: Always
+
+serviceAccount:
+  create: true
+  annotations: { }
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: kong
+  annotations: { }
+  hosts:
+    - host: "api.mecanicadm.com.br"
+      paths:
+        - path: /api
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: "2000m"
+    memory: 1024Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 80
+
+environment: "prod"
+springProfilesActive: "prod"
+
+mail:
+  host: smtp.gmail.com
+  port: "587"
+  smtpAuth: "true"
+  smtpStarttls: "true"
+
+budgetBaseUrl: "https://api.mecanicadm.com.br/api"
+
+secrets:
+  create: false
+  data:
+    mailUsername: ""
+    mailPassword: ""
+    newRelicLicenseKey: ""
+
+kongLambda:
+  enabled: true
+  awsAccessKey: ""
+  awsSecretAccessKey: ""
+  awsRegion: "us-east-1"
+  functionName: "mecanicadm-lambda-v3-prod-validate-cpf"
+  invocationType: "RequestResponse"
+  timeout: 15000
+
+seed:
+  enabled: true
+
+externalSecrets:
+  enabled: true
+  awsRegion: "us-east-1"
+  ssmPrefix: "/mecanicadm/prod"
+  refreshInterval: "1m"
+
+newRelic:
+  enabled: true
+  agentVersion: "8.15.0"
+  appName: "mecanica-dm-api"
+  logLevel: "info"
