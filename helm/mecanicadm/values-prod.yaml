@@ -17,7 +17,7 @@ ingress:
   className: kong
   annotations: { }
   hosts:
-    - host: "api.mecanicadm.example.com"
+    - host: "api.mecanicadm.com.br"
       paths:
         - path: /api
           pathType: Prefix
@@ -47,7 +47,7 @@ mail:
   smtpAuth: "true"
   smtpStarttls: "true"
 
-budgetBaseUrl: "https://api.mecanicadm.example.com/api"
+budgetBaseUrl: "https://api.mecanicadm.com.br/api"
 
 secrets:
   create: false

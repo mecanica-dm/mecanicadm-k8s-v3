@@ -79,3 +79,7 @@ jobs:
       - name: Terraform Apply
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve tfplan-prod
+
+      - name: Terraform Outputs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform output
