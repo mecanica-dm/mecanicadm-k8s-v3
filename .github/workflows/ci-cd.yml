@@ -34,7 +34,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Setup do Terraform
         uses: hashicorp/setup-terraform@v3
@@ -71,6 +71,11 @@ jobs:
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
             -backend-config="key=terraform/mecanicadm-k8s/terraform.tfstate"
+
+      # Backend novo = workspace "prod" ainda não existe; cria se necessário
+      - name: Terraform Workspace
+        run: |
+          terraform workspace select prod || terraform workspace new prod
 
       - name: Terraform Format
         run: terraform fmt -check -diff
