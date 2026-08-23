@@ -21,7 +21,52 @@ module "vpc" {
   tags = { Environment = var.environment }
 }
 
-# Cluster EKS, roles IAM e node group: definidos em eks.tf (recursos nativos)
+# Cria Cluster EKS — Kubernetes gerenciado pela AWS (control plane HA)
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
+
+  cluster_name    = var.cluster_name
+  cluster_version = var.cluster_version
+
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+
+  # Endpoint PRIVADO + PÚBLICO habilitados. O público é necessário para a
+  # esteira `app-deploy.yml` (GitHub Actions, fora da VPC) executar o
+  # `aws eks update-kubeconfig` e o `helm upgrade`. Em setups avançados isso
+  # seria feito via bastion/VPC peering — aqui o público é o caminho padrão.
+  cluster_endpoint_public_access  = true
+  cluster_endpoint_private_access = true
+
+  eks_managed_node_groups = {
+    workers = {
+      min_size     = var.node_min_size
+      max_size     = var.node_max_size
+      desired_size = var.node_desired_size
+
+      instance_types = var.node_instance_types
+
+      # Instâncias Spot: ~70% mais baratas que on-demand. Em caso de
+      # interrupção, o Auto Scaling Group repõe o node automaticamente.
+      capacity_type = "SPOT"
+
+      block_device_mappings = {
+        xvda = {
+          device_name = "/dev/xvda"
+          ebs = {
+            volume_size           = 30
+            volume_type           = "gp3"
+            encrypted             = true
+            delete_on_termination = true
+          }
+        }
+      }
+    }
+  }
+
+  tags = { Environment = var.environment }
+}
 
 # Namespace de negócio — onde a API principal será instalada via Helm (o repo mecanicadm-api-v3 aponta para este namespace no helm upgrade)
 resource "kubernetes_namespace_v1" "mecanicadm" {
@@ -32,7 +77,7 @@ resource "kubernetes_namespace_v1" "mecanicadm" {
     }
   }
 
-  depends_on = [aws_eks_node_group.workers]
+  depends_on = [module.eks]
 }
 
 # Cria API Gateway (Kong)
@@ -54,7 +99,7 @@ resource "helm_release" "kong" {
     value = "true"
   }
 
-  depends_on = [aws_eks_node_group.workers]
+  depends_on = [module.eks]
 }
 
 # Observabilidade — Prometheus (métricas), Grafana (dashboards) e Alertmanager (alertas). O Prometheus coleta métricas do app via /actuator/prometheus (Spring Boot) e do cluster (node-exporter).
@@ -83,7 +128,7 @@ resource "helm_release" "kube_prometheus_stack" {
     value = "2d"
   }
 
-  depends_on = [aws_eks_node_group.workers]
+  depends_on = [module.eks]
 }
 
 # ---------------------------------------------------------------------------
@@ -105,7 +150,7 @@ resource "helm_release" "external_secrets" {
     value = "true"
   }
 
-  depends_on = [aws_eks_node_group.workers]
+  depends_on = [module.eks]
 }
 
 # Anota o ServiceAccount do ESO com o IAM Role (IRSA) para acesso ao SSM
@@ -133,13 +178,13 @@ resource "aws_iam_role" "eso" {
     Statement = [{
       Effect = "Allow"
       Principal = {
-        Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(local.oidc_issuer_url, "https://", "")}"
+        Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}"
       }
       Action = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = {
-          "${replace(local.oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:external-secrets:external-secrets"
-          "${replace(local.oidc_issuer_url, "https://", "")}:aud" = "sts.amazonaws.com"
+          "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:external-secrets:external-secrets"
+          "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:aud" = "sts.amazonaws.com"
         }
       }
     }]
@@ -201,7 +246,7 @@ resource "aws_ssm_parameter" "lambda_subnet_b" {
 resource "aws_ssm_parameter" "eks_node_sg_id" {
   name  = "/mecanicadm/${var.environment}/eks_node_sg_id"
   type  = "String"
-  value = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+  value = module.eks.node_security_group_id
 }
 
 # ---------------------------------------------------------------------------
