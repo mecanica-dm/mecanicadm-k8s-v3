@@ -80,7 +80,12 @@ resource "kubernetes_namespace_v1" "mecanicadm" {
   depends_on = [module.eks]
 }
 
-# Cria API Gateway (Kong)
+# ---------------------------------------------------------------------------
+# Add-ons de gateway e observabilidade instalados via Helm no cluster.
+# ---------------------------------------------------------------------------
+
+# API Gateway (Kong) — expõe a API via LoadBalancer (NLB), cujo hostname é
+# registrado automaticamente no Route 53 pelo ExternalDNS.
 resource "helm_release" "kong" {
   name             = "kong"
   repository       = "https://charts.konghq.com"
@@ -205,6 +210,126 @@ resource "aws_iam_role_policy" "eso_ssm" {
   })
 }
 
+# ---------------------------------------------------------------------------
+# External DNS — mantém o Route 53 sincronizado com os LoadBalancers do
+# cluster. Observa Services tipo LoadBalancer (ex.: proxy do Kong) e cria/
+# atualiza sozinho o registro api.<domínio> para o NLB atual.
+# Requer a zona já criada pelo workflow "DNS - Hosted Zone Route 53".
+# ---------------------------------------------------------------------------
+data "aws_route53_zone" "public" {
+  count = var.external_dns_enabled ? 1 : 0
+
+  name         = var.route53_zone_name
+  private_zone = false
+}
+
+resource "aws_iam_role" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
+  name = "mecanicadm-${var.environment}-external-dns"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}"
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:external-dns:external-dns"
+          "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:aud" = "sts.amazonaws.com"
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "external_dns_route53" {
+  count = var.external_dns_enabled ? 1 : 0
+
+  name = "route53-records"
+  role = aws_iam_role.external_dns[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["route53:ChangeResourceRecordSets"]
+        Resource = "arn:aws:route53:::hostedzone/${data.aws_route53_zone.public[0].zone_id}"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["route53:GetChange"]
+        Resource = "arn:aws:route53:::change/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["route53:ListHostedZonesByName", "route53:ListResourceRecordSets", "route53:GetHostedZone"]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "helm_release" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
+  name             = "external-dns"
+  repository       = "https://kubernetes-sigs.github.io/external-dns/"
+  chart            = "external-dns"
+  version          = var.external_dns_chart_version
+  namespace        = "external-dns"
+  create_namespace = true
+
+  set {
+    name  = "provider"
+    value = "aws"
+  }
+
+  set {
+    name  = "policy"
+    value = "upsert-only"
+  }
+
+  set {
+    name  = "txtOwnerId"
+    value = var.cluster_name
+  }
+
+  set {
+    name  = "domainFilters[0]"
+    value = var.route53_zone_name
+  }
+
+  set {
+    name  = "serviceTypeFilter[0]"
+    value = "LoadBalancer"
+  }
+
+  depends_on = [module.eks]
+}
+
+resource "null_resource" "external_dns_irsa_annotation" {
+  count = var.external_dns_enabled ? 1 : 0
+
+  depends_on = [helm_release.external_dns]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl annotate serviceaccount external-dns \
+        --namespace external-dns \
+        eks.amazonaws.com/role-arn=${aws_iam_role.external_dns[0].arn} \
+        --overwrite
+    EOT
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Security Group da Lambda e parâmetros SSM compartilhados entre os repos.
+# ---------------------------------------------------------------------------
 resource "aws_security_group" "lambda" {
   name   = "mecanicadm-${var.environment}-lambda"
   vpc_id = module.vpc.vpc_id

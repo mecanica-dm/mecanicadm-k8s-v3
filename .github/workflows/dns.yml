@@ -1,0 +1,54 @@
+name: DNS - Hosted Zone Route 53
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    environment: prod
+    timeout-minutes: 10
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configura credenciais AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Setup do Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.8.0"
+
+      - name: Terraform Init
+        working-directory: dns
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
+            -backend-config="key=terraform/mecanicadm-dns/terraform.tfstate"
+
+      - name: Terraform Apply
+        working-directory: dns
+        run: terraform apply -auto-approve
+
+      - name: Nameservers para cadastrar no Registro.br
+        working-directory: dns
+        run: |
+          echo "========================================================="
+          echo " Cadastre os nameservers abaixo no painel.registro.br"
+          echo " (Domínios → mecanicadm.com.br → alterar servidores DNS)"
+          echo "========================================================="
+          terraform output -json name_servers | jq -r '.[]'
