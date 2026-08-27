@@ -29,7 +29,7 @@ variable "vpc_cidr" {
 variable "cluster_version" {
   description = "Versão do Kubernetes gerenciada pelo EKS."
   type        = string
-  default     = "1.31"
+  default     = "1.32"
 }
 
 variable "node_instance_types" {
