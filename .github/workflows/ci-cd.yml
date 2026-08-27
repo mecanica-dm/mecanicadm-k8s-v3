@@ -69,11 +69,6 @@ jobs:
             -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
             -backend-config="key=terraform/mecanicadm-k8s/terraform.tfstate"
 
-      # Backend novo = workspace "prod" ainda não existe; cria se necessário
-      - name: Terraform Workspace
-        run: |
-          terraform workspace select prod || terraform workspace new prod
-
       - name: Terraform Format
         run: terraform fmt -check -diff
 
