@@ -22,19 +22,15 @@ jobs:
       TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
       TF_WORKSPACE: prod
 
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configura credenciais AWS (Learner Lab)
+      - name: Configura credenciais AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Setup do Terraform
@@ -47,7 +43,6 @@ jobs:
           REGION="${{ vars.AWS_REGION || 'us-east-1' }}"
           BUCKET="${{ vars.TF_STATE_BUCKET }}"
           if ! aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
-            # us-east-1 não aceita LocationConstraint; demais regiões exigem
             if [ "$REGION" = "us-east-1" ]; then
               aws s3api create-bucket --bucket "$BUCKET" --region "$REGION"
             else

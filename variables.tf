@@ -85,3 +85,21 @@ variable "external_secrets_chart_version" {
   type        = string
   default     = "0.12.1"
 }
+
+variable "route53_zone_name" {
+  description = "Domínio da hosted zone Route 53 criada pela pasta dns/ (usado pelo ExternalDNS)."
+  type        = string
+  default     = "mecanicadm.com.br"
+}
+
+variable "external_dns_enabled" {
+  description = "Habilita o ExternalDNS (requer a zona já criada pelo workflow DNS - Hosted Zone)."
+  type        = bool
+  default     = true
+}
+
+variable "external_dns_chart_version" {
+  description = "Versão do chart Helm do ExternalDNS."
+  type        = string
+  default     = "1.15.0"
+}

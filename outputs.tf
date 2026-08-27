@@ -9,12 +9,12 @@ data "kubernetes_service" "kong_proxy" {
 
 output "cluster_name" {
   description = "Nome do cluster EKS (usado pelo aws eks update-kubeconfig)."
-  value       = aws_eks_cluster.this.name
+  value       = module.eks.cluster_name
 }
 
 output "cluster_endpoint" {
   description = "Endpoint do API Server do cluster (uso didático/auditoria)."
-  value       = aws_eks_cluster.this.endpoint
+  value       = module.eks.cluster_endpoint
 }
 
 output "kong_load_balancer_hostname" {
