@@ -114,6 +114,8 @@ resource "helm_release" "kong" {
   namespace        = "kong"
   create_namespace = true
 
+  timeout = 1200
+
   set {
     name  = "proxy.type"
     value = "LoadBalancer"
@@ -142,6 +144,8 @@ resource "helm_release" "metrics_server" {
   version    = var.metrics_server_chart_version
   namespace  = "kube-system"
 
+  timeout = 1200
+
   depends_on = [module.eks]
 }
 
@@ -154,6 +158,10 @@ resource "helm_release" "nri_bundle" {
   version          = var.nri_bundle_chart_version
   namespace        = "newrelic"
   create_namespace = true
+
+  # Chart grande (vários subcharts: infra, ksm, kube-events). A instalação pode
+  # passar dos 5 min padrão do provider — aumentamos para 20 min.
+  timeout = 1200
 
   set {
     name  = "global.licenseKey"
@@ -209,6 +217,8 @@ resource "helm_release" "external_secrets" {
   version          = var.external_secrets_chart_version
   namespace        = "external-secrets"
   create_namespace = true
+
+  timeout = 1200
 
   set {
     name  = "installCRDs"
@@ -345,6 +355,8 @@ resource "helm_release" "external_dns" {
   version          = var.external_dns_chart_version
   namespace        = "external-dns"
   create_namespace = true
+
+  timeout = 1200
 
   set {
     name  = "provider"
