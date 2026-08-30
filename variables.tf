@@ -109,3 +109,15 @@ variable "external_dns_chart_version" {
   type        = string
   default     = "1.15.0"
 }
+
+variable "kong_lambda_enabled" {
+  description = "Habilita o IRSA do Kong para invocar a Lambda (aws-lambda plugin)."
+  type        = bool
+  default     = true
+}
+
+variable "lambda_function_name" {
+  description = "Nome da função Lambda que o plugin aws-lambda do Kong deve invocar."
+  type        = string
+  default     = "mecanicadm-lambda-v3-prod-validate-cpf"
+}

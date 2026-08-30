@@ -20,14 +20,11 @@ metadata:
     {{- include "mecanicadm.labels" . | nindent 4 }}
 plugin: aws-lambda
 config:
-  # Credenciais AWS (lidas do Secret kong-aws-credentials)
-  aws_key:
-    secret: {{ include "mecanicadm.fullname" . }}-kong-aws-credentials
-    key: aws-access-key
-  aws_secret:
-    secret: {{ include "mecanicadm.fullname" . }}-kong-aws-credentials
-    key: aws-secret-access-key
-  # Região AWS onde a Lambda está部署da
+  # Autenticação via IRSA: o ServiceAccount do Kong (kong-kong) assume a role
+  # IAM mecanicadm-prod-kong-lambda (permissão lambda:InvokeFunction). O pod
+  # recebe AWS_ROLE_ARN+AWS_WEB_IDENTITY_TOKEN_FILE via anotação IRSA no SA,
+  # então o plugin usa a credencial de ambiente automaticamente — sem chaves.
+  # Região AWS onde a Lambda está deployada
   aws_region: {{ .Values.kongLambda.awsRegion | quote }}
   # Nome da função Lambda (ex.: "mecanicadm-lambda-v3-prod-validate-cpf")
   function_name: {{ .Values.kongLambda.functionName | quote }}
