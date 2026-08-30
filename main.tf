@@ -219,17 +219,19 @@ resource "helm_release" "external_secrets" {
 }
 
 # Anota o ServiceAccount do ESO com o IAM Role (IRSA) para acesso ao SSM
-resource "null_resource" "eso_irsa_annotation" {
+resource "kubernetes_annotations" "eso_irsa_annotation" {
   depends_on = [helm_release.external_secrets]
 
-  provisioner "local-exec" {
-    command = <<-EOT
-      kubectl annotate serviceaccount external-secrets \
-        --namespace external-secrets \
-        eks.amazonaws.com/role-arn=${aws_iam_role.eso.arn} \
-        --overwrite
-    EOT
+  api_version = "v1"
+  kind        = "ServiceAccount"
+  metadata {
+    name      = "external-secrets"
+    namespace = "external-secrets"
   }
+  annotations = {
+    "eks.amazonaws.com/role-arn" = aws_iam_role.eso.arn
+  }
+  force = true
 }
 
 # IAM Role para o ServiceAccount do ESO (IRSA) — concede acesso leitura ao SSM
@@ -372,19 +374,21 @@ resource "helm_release" "external_dns" {
   depends_on = [module.eks]
 }
 
-resource "null_resource" "external_dns_irsa_annotation" {
+resource "kubernetes_annotations" "external_dns_irsa_annotation" {
   count = var.external_dns_enabled ? 1 : 0
 
   depends_on = [helm_release.external_dns]
 
-  provisioner "local-exec" {
-    command = <<-EOT
-      kubectl annotate serviceaccount external-dns \
-        --namespace external-dns \
-        eks.amazonaws.com/role-arn=${aws_iam_role.external_dns[0].arn} \
-        --overwrite
-    EOT
+  api_version = "v1"
+  kind        = "ServiceAccount"
+  metadata {
+    name      = "external-dns"
+    namespace = "external-dns"
   }
+  annotations = {
+    "eks.amazonaws.com/role-arn" = aws_iam_role.external_dns[0].arn
+  }
+  force = true
 }
 
 # ---------------------------------------------------------------------------
