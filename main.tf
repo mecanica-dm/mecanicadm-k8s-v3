@@ -107,9 +107,9 @@ resource "kubernetes_namespace_v1" "mecanicadm" {
 # API Gateway (Kong) — expõe a API via LoadBalancer (NLB), cujo hostname é
 # registrado automaticamente no Route 53 pelo ExternalDNS.
 resource "helm_release" "kong" {
-  name       = "kong"
-  repository = data.helm_repository.kong.metadata[0].name
-  chart      = "kong"
+  name             = "kong"
+  repository       = data.helm_repository.kong.metadata[0].name
+  chart            = "kong"
   version          = var.kong_chart_version
   namespace        = "kong"
   create_namespace = true
