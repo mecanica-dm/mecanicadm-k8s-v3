@@ -41,7 +41,7 @@ module "eks" {
 
   # Mapeia o criador do cluster (a role/usuário que executou o terraform apply)
   # como admin do cluster — permite o console e o CLI acessarem os recursos K8s.
-  enable_cluster_creator_admin = true
+  enable_cluster_creator_admin_permissions = true
 
   access_entries = {
     # Conta root: mesmo não sendo "criadora", precisa de access entry para o
@@ -62,7 +62,7 @@ module "eks" {
 
   eks_managed_node_groups = {
     workers = {
-      name = "workers"
+      name         = "workers"
       min_size     = var.node_min_size
       max_size     = var.node_max_size
       desired_size = var.node_desired_size
@@ -136,11 +136,11 @@ resource "helm_release" "kong" {
 # (hpa.yaml) continue escalando por CPU/memória, já que isso ANTES vinha
 # instalado junto com o kube-prometheus-stack.
 resource "helm_release" "metrics_server" {
-  name             = "metrics-server"
-  repository       = "https://kubernetes-sigs.github.io/metrics-server/"
-  chart            = "metrics-server"
-  version          = var.metrics_server_chart_version
-  namespace        = "kube-system"
+  name       = "metrics-server"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  version    = var.metrics_server_chart_version
+  namespace  = "kube-system"
 
   depends_on = [module.eks]
 }
