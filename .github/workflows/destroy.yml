@@ -21,7 +21,7 @@ jobs:
     if: inputs.confirmation == 'DESTRUIR'
 
     env:
-      TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+      TF_VAR_newrelic_license_key: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
       TF_WORKSPACE: prod
 
     steps:

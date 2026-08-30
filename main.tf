@@ -39,8 +39,30 @@ module "eks" {
   cluster_endpoint_public_access  = true
   cluster_endpoint_private_access = true
 
+  # Mapeia o criador do cluster (a role/usuário que executou o terraform apply)
+  # como admin do cluster — permite o console e o CLI acessarem os recursos K8s.
+  enable_cluster_creator_admin_permissions = true
+
+  access_entries = {
+    # Conta root: mesmo não sendo "criadora", precisa de access entry para o
+    # console mostrar Pods/Workloads. (Uso pontual de diagnóstico.)
+    root = {
+      kubernetes_groups = []
+      principal_arn     = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
   eks_managed_node_groups = {
     workers = {
+      name         = "workers"
       min_size     = var.node_min_size
       max_size     = var.node_max_size
       desired_size = var.node_desired_size
@@ -105,30 +127,70 @@ resource "helm_release" "kong" {
   depends_on = [module.eks]
 }
 
-# Observabilidade — Prometheus (métricas), Grafana (dashboards) e Alertmanager (alertas). O Prometheus coleta métricas do app via /actuator/prometheus (Spring Boot) e do cluster (node-exporter).
-resource "helm_release" "kube_prometheus_stack" {
-  name             = "kube-prometheus-stack"
-  repository       = "https://prometheus-community.github.io/helm-charts"
-  chart            = "kube-prometheus-stack"
-  version          = var.kube_prometheus_stack_chart_version
-  namespace        = "monitoring"
+# Observabilidade — o monitoramento agora é feito pelo New Relic (APM via Java
+# agent no microserviço + Kubernetes integration via nri-bundle). O antigo
+# kube-prometheus-stack (Prometheus/Grafana/Alertmanager) foi removido por ser
+# pesado e redundante para t3.micro e para o monitoramento via New Relic.
+
+# metrics-server — mantido separadamente para que o HorizontalPodAutoscaler
+# (hpa.yaml) continue escalando por CPU/memória, já que isso ANTES vinha
+# instalado junto com o kube-prometheus-stack.
+resource "helm_release" "metrics_server" {
+  name       = "metrics-server"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  version    = var.metrics_server_chart_version
+  namespace  = "kube-system"
+
+  depends_on = [module.eks]
+}
+
+# New Relic Kubernetes integration — observa o cluster inteiro (pods, nodes,
+# deployments) e envia para o New Relic, complementando o APM do microserviço.
+resource "helm_release" "nri_bundle" {
+  name             = "nri-bundle"
+  repository       = "https://helm-charts.newrelic.com"
+  chart            = "nri-bundle"
+  version          = var.nri_bundle_chart_version
+  namespace        = "newrelic"
   create_namespace = true
 
   set {
-    name  = "grafana.adminPassword"
-    value = var.grafana_admin_password
+    name  = "global.licenseKey"
+    value = var.newrelic_license_key
   }
 
   set {
-    name  = "prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues"
+    name  = "global.cluster"
+    value = var.cluster_name
+  }
+
+  # Métricas de cluster + logs do cluster. APM da aplicação fica no agent Java.
+  set {
+    name  = "ksm.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "kubelet-metrics.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "logging.enabled"
     value = "false"
   }
 
-  # Retenção curta de métricas: reduz consumo de RAM/disco no node
-  # sem perder o histórico recente usado nos dashboards.
+  # Desliga o webhook de metadata-injection (APM já aponta NEW_RELIC_APP_NAME
+  # direto no deployment do microserviço) — economiza recursos no t3.micro.
   set {
-    name  = "prometheus.prometheusSpec.retention"
-    value = "2d"
+    name  = "nri-metadata-injection.enabled"
+    value = "false"
+  }
+
+  set {
+    name  = "nri-kube-events.enabled"
+    value = "false"
   }
 
   depends_on = [module.eks]

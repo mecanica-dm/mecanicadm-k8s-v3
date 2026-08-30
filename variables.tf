@@ -35,7 +35,7 @@ variable "cluster_version" {
 variable "node_instance_types" {
   description = "Tipos de instância dos worker nodes (adequados à carga de produção)."
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["t3.micro"]
 }
 
 variable "node_desired_size" {
@@ -62,14 +62,20 @@ variable "kong_chart_version" {
   default     = "2.45.0"
 }
 
-variable "kube_prometheus_stack_chart_version" {
-  description = "Versão do chart kube-prometheus-stack (Prometheus + Grafana)."
+variable "metrics_server_chart_version" {
+  description = "Versão do chart metrics-server (necessário para o HPA por CPU/memória)."
   type        = string
-  default     = "62.0.0"
+  default     = "3.12.2"
 }
 
-variable "grafana_admin_password" {
-  description = "Senha do admin do Grafana (secret da pipeline via TF_VAR)."
+variable "nri_bundle_chart_version" {
+  description = "Versão do chart nri-bundle da New Relic (Kubernetes integration)."
+  type        = string
+  default     = "8.0.20"
+}
+
+variable "newrelic_license_key" {
+  description = "License key da New Relic (secret da pipeline via TF_VAR)."
   type        = string
   sensitive   = true
 }
