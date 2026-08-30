@@ -126,7 +126,54 @@ resource "helm_release" "kong" {
     value = "true"
   }
 
+  dynamic "set" {
+    for_each = var.kong_lambda_enabled ? [1] : []
+    content {
+      name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+      value = aws_iam_role.kong_lambda[0].arn
+    }
+  }
+
   depends_on = [module.eks]
+}
+
+resource "aws_iam_role" "kong_lambda" {
+  count = var.kong_lambda_enabled ? 1 : 0
+
+  name = "mecanicadm-${var.environment}-kong-lambda"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}"
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:sub" = "system:serviceaccount:kong:kong-kong"
+          "${replace(module.eks.cluster_oidc_issuer_url, "https://", "")}:aud" = "sts.amazonaws.com"
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "kong_lambda_invoke" {
+  count = var.kong_lambda_enabled ? 1 : 0
+
+  name = "lambda-invoke"
+  role = aws_iam_role.kong_lambda[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["lambda:InvokeFunction"]
+      Resource = "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:${var.lambda_function_name}"
+    }]
+  })
 }
 
 # Observabilidade — o monitoramento agora é feito pelo New Relic (APM via Java
