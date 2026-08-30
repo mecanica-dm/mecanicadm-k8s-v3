@@ -339,7 +339,7 @@ resource "aws_iam_role_policy" "external_dns_route53" {
       },
       {
         Effect   = "Allow"
-        Action   = ["route53:ListHostedZonesByName", "route53:ListResourceRecordSets", "route53:GetHostedZone"]
+        Action   = ["route53:ListHostedZones", "route53:ListHostedZonesByName", "route53:ListResourceRecordSets", "route53:GetHostedZone"]
         Resource = "*"
       }
     ]
