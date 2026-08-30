@@ -107,9 +107,9 @@ resource "kubernetes_namespace_v1" "mecanicadm" {
 # API Gateway (Kong) — expõe a API via LoadBalancer (NLB), cujo hostname é
 # registrado automaticamente no Route 53 pelo ExternalDNS.
 resource "helm_release" "kong" {
-  name             = "kong"
-  repository       = "https://charts.konghq.com"
-  chart            = "kong"
+  name       = "kong"
+  repository = data.helm_repository.kong.metadata[0].name
+  chart      = "kong"
   version          = var.kong_chart_version
   namespace        = "kong"
   create_namespace = true
@@ -139,7 +139,7 @@ resource "helm_release" "kong" {
 # instalado junto com o kube-prometheus-stack.
 resource "helm_release" "metrics_server" {
   name       = "metrics-server"
-  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  repository = data.helm_repository.metrics_server.metadata[0].name
   chart      = "metrics-server"
   version    = var.metrics_server_chart_version
   namespace  = "kube-system"
@@ -153,7 +153,7 @@ resource "helm_release" "metrics_server" {
 # deployments) e envia para o New Relic, complementando o APM do microserviço.
 resource "helm_release" "nri_bundle" {
   name             = "nri-bundle"
-  repository       = "https://helm-charts.newrelic.com"
+  repository       = data.helm_repository.newrelic.metadata[0].name
   chart            = "nri-bundle"
   version          = var.nri_bundle_chart_version
   namespace        = "newrelic"
@@ -212,7 +212,7 @@ resource "helm_release" "nri_bundle" {
 # ---------------------------------------------------------------------------
 resource "helm_release" "external_secrets" {
   name             = "external-secrets"
-  repository       = "https://charts.external-secrets.io"
+  repository       = data.helm_repository.external_secrets.metadata[0].name
   chart            = "external-secrets"
   version          = var.external_secrets_chart_version
   namespace        = "external-secrets"
@@ -350,7 +350,7 @@ resource "helm_release" "external_dns" {
   count = var.external_dns_enabled ? 1 : 0
 
   name             = "external-dns"
-  repository       = "https://kubernetes-sigs.github.io/external-dns/"
+  repository       = data.helm_repository.external_dns.metadata[0].name
   chart            = "external-dns"
   version          = var.external_dns_chart_version
   namespace        = "external-dns"

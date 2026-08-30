@@ -48,3 +48,28 @@ provider "helm" {
     token                  = data.aws_eks_cluster_auth.cluster.token
   }
 }
+
+data "helm_repository" "kong" {
+  name = "kong"
+  url  = "https://charts.konghq.com"
+}
+
+data "helm_repository" "metrics_server" {
+  name = "metrics-server"
+  url  = "https://kubernetes-sigs.github.io/metrics-server/"
+}
+
+data "helm_repository" "newrelic" {
+  name = "newrelic"
+  url  = "https://helm-charts.newrelic.com"
+}
+
+data "helm_repository" "external_secrets" {
+  name = "external-secrets"
+  url  = "https://charts.external-secrets.io"
+}
+
+data "helm_repository" "external_dns" {
+  name = "external-dns"
+  url  = "https://kubernetes-sigs.github.io/external-dns/"
+}
