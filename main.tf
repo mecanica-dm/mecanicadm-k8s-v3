@@ -47,9 +47,7 @@ module "eks" {
 
       instance_types = var.node_instance_types
 
-      # Instâncias Spot: ~70% mais baratas que on-demand. Em caso de
-      # interrupção, o Auto Scaling Group repõe o node automaticamente.
-      capacity_type = "SPOT"
+      capacity_type = "ON_DEMAND"
 
       block_device_mappings = {
         xvda = {
