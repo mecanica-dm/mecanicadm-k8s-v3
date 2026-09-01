@@ -7,7 +7,7 @@
 # Fluxo: Cliente → Kong (LoadBalancer) → Ingress (regras) → Service → Pod
 #
 # Este Ingress roteia o prefixo /api para a API Spring Boot.
-# O prefixo /lambda é roteado pelo kong-lambda-ingress.yaml.
+# O prefixo /auth é roteado pelo kong-auth-ingress.yaml.
 # =============================================================================
 
 {{- if .Values.ingress.enabled }}
