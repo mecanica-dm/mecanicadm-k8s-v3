@@ -1,20 +1,12 @@
 # =============================================================================
-# KONG LAMBDA INGRESS — rota /lambda para a Lambda (via Kong)
-# =============================================================================
-# Este Ingress roteia o prefixo /lambda para a Lambda da AWS.
-# Usa o plugin aws-lambda (configurado em kong-lambda-plugin.yaml).
-#
-# Fluxo: Cliente → POST /lambda/token → Kong → Plugin aws-lambda → Lambda (AWS)
-#
-# Diferente do ingress.yaml (que roteia para pods K8s),
-# este roteia para um serviço EXTERNO (Lambda na AWS).
+# KONG AUTH INGRESS — rota /auth para a Lambda
 # =============================================================================
 
 {{- if .Values.kongLambda.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "mecanicadm.fullname" . }}-lambda
+  name: {{ include "mecanicadm.fullname" . }}-auth
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "mecanicadm.labels" . | nindent 4 }}
@@ -29,12 +21,12 @@ spec:
     - host: {{ .host | quote }}    # Mesmo domínio do Ingress da API
       http:
         paths:
-          - path: /lambda           # Prefixo /lambda → Lambda
-            pathType: Prefix        # Match por prefixo
+          - path: /auth            # Prefixo /auth → Lambda
+            pathType: Prefix       # Match por prefixo
             backend:
               service:
-                name: kong          # Serviço "kong" (LoadBalancer)
+                name: {{ include "mecanicadm.fullname" $ }}  # Service da API (placeholder)
                 port:
-                  number: 80        # Porta do Kong proxy
+                  number: {{ $.Values.service.port }}        # Porta 80
     {{- end }}
 {{- end }}
