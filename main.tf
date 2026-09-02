@@ -233,7 +233,7 @@ resource "helm_release" "nri_bundle" {
 
   set {
     name  = "logging.enabled"
-    value = "false"
+    value = "true"
   }
 
   # Desliga o webhook de metadata-injection (APM já aponta NEW_RELIC_APP_NAME
