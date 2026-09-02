@@ -430,24 +430,12 @@ resource "helm_release" "external_dns" {
     value = "LoadBalancer"
   }
 
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = aws_iam_role.external_dns[0].arn
+  }
+
   depends_on = [module.eks]
-}
-
-resource "kubernetes_annotations" "external_dns_irsa_annotation" {
-  count = var.external_dns_enabled ? 1 : 0
-
-  depends_on = [helm_release.external_dns]
-
-  api_version = "v1"
-  kind        = "ServiceAccount"
-  metadata {
-    name      = "external-dns"
-    namespace = "external-dns"
-  }
-  annotations = {
-    "eks.amazonaws.com/role-arn" = aws_iam_role.external_dns[0].arn
-  }
-  force = true
 }
 
 # ---------------------------------------------------------------------------

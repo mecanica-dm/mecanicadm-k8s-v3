@@ -85,3 +85,23 @@ jobs:
       - name: Terraform Outputs
         if: github.ref == 'refs/heads/main'
         run: terraform output
+
+      - name: Atualiza o kubeconfig do EKS
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ vars.EKS_CLUSTER_NAME || 'mecanicadm-prod' }} \
+            --region ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Reinicia o ExternalDNS para injeção do IRSA
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+        run: |
+          kubectl rollout restart deployment/external-dns -n external-dns
+          kubectl rollout status deployment/external-dns -n external-dns --timeout=3m
+          ROLE_ARN=$(kubectl get pod -n external-dns -l app.kubernetes.io/name=external-dns \
+            -o jsonpath='{.items[0].spec.containers[0].env[?(@.name=="AWS_ROLE_ARN")].value}')
+          echo "ExternalDNS IRSA (pod): ${ROLE_ARN:-NAO INJETADO}"
+          if [ -z "$ROLE_ARN" ]; then
+            echo "::error::IRSA nao foi injetado no ExternalDNS. Verifique o webhook de identidade do cluster."
+            exit 1
+          fi

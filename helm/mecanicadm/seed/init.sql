@@ -15,11 +15,11 @@ ON CONFLICT DO NOTHING;
 -- 1. INSERIR CLIENTES
 -- =========================================
 INSERT INTO clients (id, name, email, document, phone, date_created, date_updated, deleted_at) VALUES
-('150b06cf-68b6-455a-94dc-215c9a0f443b', 'Frota ABC Logística', 'contato@abc-logistica.com', '12345678901234', '48999999001', now(), now(), null),
-('d9426f21-70ab-48d6-847e-4054a3a6b2b7', 'Transportes Silva', 'silva@transportes.com', '98765432109876', '48999999002', now(), now(), null),
-('4f74d0a8-b649-43c1-a20c-843de26f74a0', 'Táxi Aeroporto', 'taxiaero@mail.com', '11111111111111', '48999999003', now(), now(), null),
-('6b9cc8de-31a2-4759-9f4a-25091c5c56d1', 'Uber Drivers', 'uber@drivers.com', '22222222222222', '48999999004', now(), now(), null),
-('8b3f81e5-e118-4e31-8979-994cba5256e4', 'Deliveries Express', 'express@deliver.com', '33333333333333', '48999999005', now(), now(), null)
+('150b06cf-68b6-455a-94dc-215c9a0f443b', 'Frota ABC Logística', 'contato@abc-logistica.com', '79013046002', '48999999001', now(), now(), null),
+('d9426f21-70ab-48d6-847e-4054a3a6b2b7', 'Transportes Silva', 'silva@transportes.com', '10888602065', '48999999002', now(), now(), null),
+('4f74d0a8-b649-43c1-a20c-843de26f74a0', 'Táxi Aeroporto', 'taxiaero@mail.com', '93700260024', '48999999003', now(), now(), null),
+('6b9cc8de-31a2-4759-9f4a-25091c5c56d1', 'Uber Drivers', 'uber@drivers.com', '46317355000100', '48999999004', now(), now(), null),
+('8b3f81e5-e118-4e31-8979-994cba5256e4', 'Deliveries Express', 'express@deliver.com', '46317355000100', '48999999005', now(), now(), null)
 ON CONFLICT DO NOTHING;
 
 -- =========================================

@@ -20,10 +20,7 @@ metadata:
     {{- include "mecanicadm.labels" . | nindent 4 }}
 plugin: aws-lambda
 config:
-  # Autenticação via IRSA: o ServiceAccount do Kong (kong-kong) assume a role
-  # IAM mecanicadm-prod-kong-lambda (permissão lambda:InvokeFunction). O pod
-  # recebe AWS_ROLE_ARN+AWS_WEB_IDENTITY_TOKEN_FILE via anotação IRSA no SA,
-  # então o plugin usa a credencial de ambiente automaticamente — sem chaves.
+  # Autenticação via IRSA (role do SA do Kong) — sem credenciais estáticas.
   # Região AWS onde a Lambda está deployada
   aws_region: {{ .Values.kongLambda.awsRegion | quote }}
   # Nome da função Lambda (ex.: "mecanicadm-lambda-v3-prod-validate-cpf")
@@ -33,4 +30,7 @@ config:
   invocation_type: {{ .Values.kongLambda.invocationType | quote }}
   # Timeout em milissegundos (15000 = limite do plugin)
   timeout: {{ .Values.kongLambda.timeout | int }}
+  # Envelopa a requisição no formato AWS API Gateway (payload 1.0), para a
+  # Lambda receber o body em event["body"] e responder no formato proxy.
+  awsgateway_compatible: true
 {{- end }}
