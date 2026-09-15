@@ -126,10 +126,13 @@ resource "helm_release" "kong" {
     value = "true"
   }
 
+  # O chart Kong renderiza o SA em kong/templates/service-account.yaml usando
+  # `.Values.deployment.serviceAccount.annotations` (e não `serviceAccount.`).
+  # Por isso a anotação IRSA deve ser setada neste caminho.
   dynamic "set" {
     for_each = var.kong_lambda_enabled ? [1] : []
     content {
-      name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+      name  = "deployment.serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
       value = aws_iam_role.kong_lambda[0].arn
     }
   }
