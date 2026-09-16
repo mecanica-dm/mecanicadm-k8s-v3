@@ -33,4 +33,8 @@ config:
   # Envelopa a requisição no formato AWS API Gateway (payload 1.0), para a
   # Lambda receber o body em event["body"] e responder no formato proxy.
   awsgateway_compatible: true
+  # Desempacota a resposta da Lambda no formato proxy ({statusCode, headers,
+  # body}), traduzindo o "statusCode" para o status HTTP real. Sem isso o Kong
+  # devolve o JSON da Lambda inteiro com status HTTP 200.
+  is_proxy_integration: true
 {{- end }}
